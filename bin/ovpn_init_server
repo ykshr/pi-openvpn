@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# Initialize the EasyRSA PKI
+#
+
+set -eu
+
+if [ `ls -1 /etc/openvpn | wc -l` ]; then
+    cp -ar /tmp/openvpn/* /etc/openvpn/
+    chown -R root:root /etc/openvpn
+fi
+if [ `ls -1 /usr/local/EasyRSA | wc -l` ]; then
+    tar -xvzf /tmp/EasyRSA-3.0.0-rc2.tgz
+    cp -ar /tmp/EasyRSA-3.0.0-rc2/* /usr/local/EasyRSA/
+    chown -R root:root /usr/local/EasyRSA
+    rm -rf /tmp/EasyRSA-3.0.0-rc2.tgz
+    rm -rf /tmp/EasyRSA-3.0.0-rc2
+fi
+
+cd /usr/local/EasyRSA
+
+# For CA
+./easyrsa init-pki
+./easyrsa build-ca nopass
+./easyrsa gen-dh
+
+# For a Server
+./easyrsa build-server-full server nopass
+
+cp pki/ca.crt /etc/openvpn/
+cp pki/issued/server.crt /etc/openvpn/
+cp pki/private/server.key /etc/openvpn/
+cp pki/dh.pem /etc/openvpn/dh2048.pem

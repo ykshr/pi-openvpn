@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Generate a Client
+#
+
+set -eu
+
+CLIENT_NAME=$1
+CONF_DIR="/usr/local/EasyRSA"
+
+if [ ! -f /etc/openvpn/ca.crt ]; then
+    echo "Unable to find CA file, please try again or init a server first"
+    exit 1
+fi
+
+if [ -f /etc/openvpn/ovpn/$CLIENT_NAME.ovpn ]; then
+   rm /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+fi
+
+cd $CONF_DIR
+./easyrsa build-client-full $CLIENT_NAME nopass
+
+cd /etc/openvpn/ovpn
+cp /etc/openvpn/ovpn/template.ovpn /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+
+echo "<ca>" >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+cat /etc/openvpn/ca.crt >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+echo "</ca>" >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+
+echo "<cert>" >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+openssl x509 -in $CONF_DIR/pki/issued/$CLIENT_NAME.crt  >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+echo "</cert>" >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+
+echo "<key>" >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+cat $CONF_DIR/pki/private/$CLIENT_NAME.key >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn
+echo "</key>" >> /etc/openvpn/ovpn/$CLIENT_NAME.ovpn

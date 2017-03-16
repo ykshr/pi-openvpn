@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Run the OpenVPN server normally
+#
+
+set -eu
+
+mkdir -p /dev/net
+if [ ! -c /dev/net/tun ]; then
+    mknod /dev/net/tun c 10 200
+fi
+
+ip addr flush dev eth0
+ip addr add ${CONTAINER_IP} dev eth0
+ip route add default via ${DEFAULT_GW} dev eth0
+
+iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+
+/etc/init.d/openvpn start
+
+tail -f /var/log/openvpn.log
